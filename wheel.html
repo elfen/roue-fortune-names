@@ -72,48 +72,36 @@
             transform: scale(1.02);
         }
 
-        .button-container {
-            margin-top: 30px;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 15px 40px;
-            font-size: 18px;
+        #spinButton {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 45px;
+            font-size: 20px;
             font-weight: bold;
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        #spinButton {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 15;
         }
 
         #spinButton:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        #spinButton:active:not(:disabled) {
+            transform: translate(-50%, -50%) scale(0.98);
         }
 
         #spinButton:disabled {
-            opacity: 0.5;
+            opacity: 0.6;
             cursor: not-allowed;
-        }
-
-        #editButton {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-        }
-
-        #editButton:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
         }
 
         .result {
@@ -139,88 +127,6 @@
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 30px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 20px;
-        }
-
-        .close:hover {
-            color: #000;
-        }
-
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 15px;
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            font-size: 16px;
-            font-family: inherit;
-            resize: vertical;
-            margin-top: 10px;
-        }
-
-        .modal-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .modal-buttons button {
-            padding: 10px 25px;
-            font-size: 16px;
-        }
-
-        .info-text {
-            color: #666;
-            font-size: 14px;
-            margin-top: 10px;
         }
 
         .confetti {
@@ -249,45 +155,23 @@
                 height: 90vw;
             }
             
-            button {
-                padding: 12px 30px;
-                font-size: 16px;
+            #spinButton {
+                padding: 15px 35px;
+                font-size: 18px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎡 Roue de la Fortune</h1>
-        
-        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
-            💡 Astuce : Ajoutez <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">?names=prénom1,prénom2,prénom3</code> à l'URL
-        </p>
         
         <div class="wheel-container">
             <div class="arrow"></div>
             <canvas id="wheel"></canvas>
-        </div>
-        
-        <div class="button-container">
             <button id="spinButton">Lancer la roue</button>
-            <button id="editButton">Modifier les prénoms</button>
         </div>
         
         <div class="result" id="result"></div>
-    </div>
-
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 style="color: #667eea; margin-bottom: 15px;">Modifier les prénoms</h2>
-            <p class="info-text">Entrez un prénom par ligne</p>
-            <textarea id="namesInput"></textarea>
-            <div class="modal-buttons">
-                <button id="cancelButton" style="background: #ddd; color: #333;">Annuler</button>
-                <button id="saveButton" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">Sauvegarder</button>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -304,12 +188,8 @@
                 }
             }
             
-            // Liste par défaut si aucun paramètre
-            return [
-                "Alice", "Bob", "Charlie", "Diana", "Emma",
-                "François", "Gabriel", "Hugo", "Isabelle", "Julien",
-                "Léa", "Marc", "Nathalie", "Olivier", "Pierre"
-            ];
+            // Retourner un tableau vide si aucun paramètre
+            return [];
         }
         
         let names = getNamesFromURL();
@@ -317,13 +197,7 @@
         const canvas = document.getElementById('wheel');
         const ctx = canvas.getContext('2d');
         const spinButton = document.getElementById('spinButton');
-        const editButton = document.getElementById('editButton');
         const result = document.getElementById('result');
-        const modal = document.getElementById('modal');
-        const closeModal = document.querySelector('.close');
-        const cancelButton = document.getElementById('cancelButton');
-        const saveButton = document.getElementById('saveButton');
-        const namesInput = document.getElementById('namesInput');
 
         let currentRotation = 0;
         let isSpinning = false;
@@ -347,6 +221,23 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const radius = Math.min(centerX, centerY) - 10;
+            
+            // Si pas de prénoms, afficher un message
+            if (names.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#667eea';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Aucun prénom fourni', centerX, centerY - 10);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#999';
+                ctx.fillText('Ajoutez ?names=prénom1,prénom2,prénom3', centerX, centerY + 20);
+                ctx.fillText('à l\'URL', centerX, centerY + 45);
+                spinButton.disabled = true;
+                return;
+            }
+            
+            spinButton.disabled = false;
             const sliceAngle = (2 * Math.PI) / names.length;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -475,47 +366,8 @@
             }
         }
 
-        // Gestion du modal
-        function openModal() {
-            namesInput.value = names.join('\n');
-            modal.style.display = 'block';
-        }
-
-        function closeModalFunc() {
-            modal.style.display = 'none';
-        }
-
-        function saveNames() {
-            const newNames = namesInput.value
-                .split('\n')
-                .map(name => name.trim())
-                .filter(name => name.length > 0);
-
-            if (newNames.length < 2) {
-                alert('Veuillez entrer au moins 2 prénoms !');
-                return;
-            }
-
-            names = newNames;
-            currentRotation = 0;
-            drawWheel();
-            closeModalFunc();
-            result.classList.remove('show');
-            result.textContent = '';
-        }
-
         // Event listeners
         spinButton.addEventListener('click', spinWheel);
-        editButton.addEventListener('click', openModal);
-        closeModal.addEventListener('click', closeModalFunc);
-        cancelButton.addEventListener('click', closeModalFunc);
-        saveButton.addEventListener('click', saveNames);
-
-        window.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeModalFunc();
-            }
-        });
 
         window.addEventListener('resize', resizeCanvas);
 
