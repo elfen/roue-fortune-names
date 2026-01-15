@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roue de la Fortune - Sélection Aléatoire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            margin: 30px auto;
+            max-width: 90vw;
+            max-height: 90vw;
+        }
+
+        .arrow {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff6b6b;
+            z-index: 10;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+        }
+
+        canvas {
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        canvas:hover {
+            transform: scale(1.02);
+        }
+
+        .button-container {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #spinButton {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        #spinButton:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #spinButton:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #editButton {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        #editButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 15px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.5s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .result.show {
+            opacity: 1;
+            transform: scale(1);
+            animation: pulse 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            margin-top: 10px;
+        }
+
+        .modal-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-buttons button {
+            padding: 10px 25px;
+            font-size: 16px;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #f0f;
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .wheel-container {
+                width: 90vw;
+                height: 90vw;
+            }
+            
+            button {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎡 Roue de la Fortune</h1>
+        
+        <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+            💡 Astuce : Ajoutez <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">?names=prénom1,prénom2,prénom3</code> à l'URL
+        </p>
+        
+        <div class="wheel-container">
+            <div class="arrow"></div>
+            <canvas id="wheel"></canvas>
+        </div>
+        
+        <div class="button-container">
+            <button id="spinButton">Lancer la roue</button>
+            <button id="editButton">Modifier les prénoms</button>
+        </div>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 style="color: #667eea; margin-bottom: 15px;">Modifier les prénoms</h2>
+            <p class="info-text">Entrez un prénom par ligne</p>
+            <textarea id="namesInput"></textarea>
+            <div class="modal-buttons">
+                <button id="cancelButton" style="background: #ddd; color: #333;">Annuler</button>
+                <button id="saveButton" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fonction pour récupérer les prénoms depuis l'URL
+        function getNamesFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const namesParam = urlParams.get('names');
+            
+            if (namesParam) {
+                // Séparer par virgule et nettoyer les espaces
+                const namesList = namesParam.split(',').map(name => name.trim()).filter(name => name.length > 0);
+                if (namesList.length > 0) {
+                    return namesList;
+                }
+            }
+            
+            // Liste par défaut si aucun paramètre
+            return [
+                "Alice", "Bob", "Charlie", "Diana", "Emma",
+                "François", "Gabriel", "Hugo", "Isabelle", "Julien",
+                "Léa", "Marc", "Nathalie", "Olivier", "Pierre"
+            ];
+        }
+        
+        let names = getNamesFromURL();
+
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const spinButton = document.getElementById('spinButton');
+        const editButton = document.getElementById('editButton');
+        const result = document.getElementById('result');
+        const modal = document.getElementById('modal');
+        const closeModal = document.querySelector('.close');
+        const cancelButton = document.getElementById('cancelButton');
+        const saveButton = document.getElementById('saveButton');
+        const namesInput = document.getElementById('namesInput');
+
+        let currentRotation = 0;
+        let isSpinning = false;
+
+        // Couleurs vives pour la roue
+        const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
+            '#FF85A2', '#5DADE2', '#F39C12', '#AF7AC5', '#48C9B0'
+        ];
+
+        function resizeCanvas() {
+            const container = document.querySelector('.wheel-container');
+            const size = Math.min(container.clientWidth, container.clientHeight);
+            canvas.width = size;
+            canvas.height = size;
+            drawWheel();
+        }
+
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 10;
+            const sliceAngle = (2 * Math.PI) / names.length;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(currentRotation);
+
+            // Dessiner chaque segment
+            names.forEach((name, index) => {
+                const startAngle = index * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+
+                // Dessiner le segment
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+
+                // Bordure
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Texte
+                ctx.save();
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold ' + Math.max(12, radius / 15) + 'px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 3;
+                ctx.fillText(name, radius * 0.65, 5);
+                ctx.restore();
+            });
+
+            // Cercle central
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 0.15, 0, 2 * Math.PI);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+            
+            isSpinning = true;
+            spinButton.disabled = true;
+            result.classList.remove('show');
+            result.textContent = '';
+
+            // Générer une rotation aléatoire (5 à 8 tours complets + un angle aléatoire)
+            const minSpins = 5;
+            const maxSpins = 8;
+            const spins = minSpins + Math.random() * (maxSpins - minSpins);
+            const randomAngle = Math.random() * 2 * Math.PI;
+            const totalRotation = spins * 2 * Math.PI + randomAngle;
+
+            const duration = 4000 + Math.random() * 2000; // 4-6 secondes
+            const startTime = Date.now();
+            const startRotation = currentRotation;
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Fonction d'easing pour un ralentissement naturel
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                
+                currentRotation = startRotation + totalRotation * easeOut;
+                drawWheel();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    isSpinning = false;
+                    spinButton.disabled = false;
+                    showResult();
+                }
+            }
+
+            animate();
+        }
+
+        function showResult() {
+            // Calculer quel segment est en haut (angle 270° = -π/2)
+            const normalizedRotation = (currentRotation % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+            const arrowAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
+            const sliceAngle = (2 * Math.PI) / names.length;
+            const winningIndex = Math.floor(arrowAngle / sliceAngle);
+            const winner = names[winningIndex];
+
+            // Afficher le résultat avec animation
+            result.textContent = `🎉 Gagnant : ${winner} !`;
+            result.classList.add('show');
+
+            // Confettis
+            createConfetti();
+        }
+
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#ffa07a', '#f7dc6f', '#bb8fce'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.style.position = 'fixed';
+                    confetti.style.left = Math.random() * window.innerWidth + 'px';
+                    confetti.style.top = '-10px';
+                    confetti.style.width = (Math.random() * 10 + 5) + 'px';
+                    confetti.style.height = (Math.random() * 10 + 5) + 'px';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.opacity = '1';
+                    confetti.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
+                    confetti.style.animation = `confetti-fall ${2 + Math.random() * 2}s linear forwards`;
+                    confetti.style.zIndex = '9999';
+                    document.body.appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 4000);
+                }, i * 30);
+            }
+        }
+
+        // Gestion du modal
+        function openModal() {
+            namesInput.value = names.join('\n');
+            modal.style.display = 'block';
+        }
+
+        function closeModalFunc() {
+            modal.style.display = 'none';
+        }
+
+        function saveNames() {
+            const newNames = namesInput.value
+                .split('\n')
+                .map(name => name.trim())
+                .filter(name => name.length > 0);
+
+            if (newNames.length < 2) {
+                alert('Veuillez entrer au moins 2 prénoms !');
+                return;
+            }
+
+            names = newNames;
+            currentRotation = 0;
+            drawWheel();
+            closeModalFunc();
+            result.classList.remove('show');
+            result.textContent = '';
+        }
+
+        // Event listeners
+        spinButton.addEventListener('click', spinWheel);
+        editButton.addEventListener('click', openModal);
+        closeModal.addEventListener('click', closeModalFunc);
+        cancelButton.addEventListener('click', closeModalFunc);
+        saveButton.addEventListener('click', saveNames);
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModalFunc();
+            }
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialisation
+        resizeCanvas();
+    </script>
+</body>
+</html>
