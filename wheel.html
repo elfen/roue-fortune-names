@@ -175,20 +175,20 @@
     </div>
 
     <script>
-        // Fonction pour récupérer les prénoms depuis l'URL
+        // Read the names from the URL
         function getNamesFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
             const namesParam = urlParams.get('names');
             
             if (namesParam) {
-                // Séparer par virgule et nettoyer les espaces
+                // Split on commas and trim whitespace
                 const namesList = namesParam.split(',').map(name => name.trim()).filter(name => name.length > 0);
                 if (namesList.length > 0) {
                     return namesList;
                 }
             }
             
-            // Retourner un tableau vide si aucun paramètre
+            // Return an empty array when the parameter is missing
             return [];
         }
         
@@ -201,8 +201,9 @@
 
         let currentRotation = 0;
         let isSpinning = false;
+        let lastWinnerIndex = null;
 
-        // Couleurs vives pour la roue
+        // Bright colors for the wheel
         const colors = [
             '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
             '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
@@ -222,7 +223,7 @@
             const centerY = canvas.height / 2;
             const radius = Math.min(centerX, centerY) - 10;
             
-            // Si pas de prénoms, afficher un message
+            // No names: show a help message
             if (names.length === 0) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#667eea';
@@ -245,12 +246,12 @@
             ctx.translate(centerX, centerY);
             ctx.rotate(currentRotation);
 
-            // Dessiner chaque segment
+            // Draw each slice
             names.forEach((name, index) => {
                 const startAngle = index * sliceAngle;
                 const endAngle = startAngle + sliceAngle;
 
-                // Dessiner le segment
+                // Draw the slice
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
                 ctx.arc(0, 0, radius, startAngle, endAngle);
@@ -258,12 +259,12 @@
                 ctx.fillStyle = colors[index % colors.length];
                 ctx.fill();
 
-                // Bordure
+                // Border
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 3;
                 ctx.stroke();
 
-                // Texte
+                // Text
                 ctx.save();
                 ctx.rotate(startAngle + sliceAngle / 2);
                 ctx.textAlign = 'center';
@@ -275,7 +276,7 @@
                 ctx.restore();
             });
 
-            // Cercle central
+            // Center circle
             ctx.beginPath();
             ctx.arc(0, 0, radius * 0.15, 0, 2 * Math.PI);
             ctx.fillStyle = '#fff';
@@ -287,6 +288,23 @@
             ctx.restore();
         }
 
+        // Uniform float in [0, 1) using crypto.getRandomValues
+        function secureRandom() {
+            const buf = new Uint32Array(1);
+            crypto.getRandomValues(buf);
+            return buf[0] / 4294967296;
+        }
+
+        // Uniform integer in [0, n) without modulo bias (rejection sampling)
+        function secureRandomInt(n) {
+            const limit = Math.floor(4294967296 / n) * n;
+            const buf = new Uint32Array(1);
+            do {
+                crypto.getRandomValues(buf);
+            } while (buf[0] >= limit);
+            return buf[0] % n;
+        }
+
         function spinWheel() {
             if (isSpinning) return;
             
@@ -295,14 +313,28 @@
             result.classList.remove('show');
             result.textContent = '';
 
-            // Générer une rotation aléatoire (5 à 8 tours complets + un angle aléatoire)
-            const minSpins = 5;
-            const maxSpins = 8;
-            const spins = minSpins + Math.random() * (maxSpins - minSpins);
-            const randomAngle = Math.random() * 2 * Math.PI;
-            const totalRotation = spins * 2 * Math.PI + randomAngle;
+            // Pick the winner uniformly with a cryptographically secure RNG,
+            // then compute the rotation that brings its slice under the arrow.
+            const TWO_PI = 2 * Math.PI;
+            const sliceAngle = TWO_PI / names.length;
+            // Exclude the previous winner: uniform draw among the n-1 others
+            let winningIndex;
+            if (lastWinnerIndex === null || names.length < 2) {
+                winningIndex = secureRandomInt(names.length);
+            } else {
+                winningIndex = secureRandomInt(names.length - 1);
+                if (winningIndex >= lastWinnerIndex) winningIndex++;
+            }
+            lastWinnerIndex = winningIndex;
+            // Stop between 10% and 90% of the slice so it never lands on a border
+            const targetArrowAngle = (winningIndex + 0.1 + 0.8 * secureRandom()) * sliceAngle;
+            const targetRotation = ((3 * Math.PI / 2 - targetArrowAngle) % TWO_PI + TWO_PI) % TWO_PI;
+            const currentNormalized = (currentRotation % TWO_PI + TWO_PI) % TWO_PI;
+            const delta = ((targetRotation - currentNormalized) % TWO_PI + TWO_PI) % TWO_PI;
+            const fullSpins = 5 + secureRandomInt(4); // 5 to 8 full turns
+            const totalRotation = fullSpins * TWO_PI + delta;
 
-            const duration = 4000 + Math.random() * 2000; // 4-6 secondes
+            const duration = 4000 + secureRandom() * 2000; // 4-6 seconds
             const startTime = Date.now();
             const startRotation = currentRotation;
 
@@ -310,7 +342,7 @@
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(elapsed / duration, 1);
 
-                // Fonction d'easing pour un ralentissement naturel
+                // Easing function for a natural slowdown
                 const easeOut = 1 - Math.pow(1 - progress, 3);
                 
                 currentRotation = startRotation + totalRotation * easeOut;
@@ -329,18 +361,18 @@
         }
 
         function showResult() {
-            // Calculer quel segment est en haut (angle 270° = -π/2)
+            // Find which slice is at the top (angle 270° = -π/2)
             const normalizedRotation = (currentRotation % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
             const arrowAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
             const sliceAngle = (2 * Math.PI) / names.length;
             const winningIndex = Math.floor(arrowAngle / sliceAngle);
             const winner = names[winningIndex];
 
-            // Afficher le résultat avec animation
+            // Show the result with an animation
             result.textContent = `🎉 Prochain speaker : ${winner} !`;
             result.classList.add('show');
 
-            // Confettis
+            // Confetti
             createConfetti();
         }
 
@@ -371,7 +403,7 @@
 
         window.addEventListener('resize', resizeCanvas);
 
-        // Initialisation
+        // Initialization
         resizeCanvas();
     </script>
 </body>
